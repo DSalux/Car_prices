@@ -275,7 +275,7 @@ def main():
     st.metric("Ориентировочная цена", format_price_rupee(prediction))
 
     with st.expander("Параметры для модели"):
-        st.dataframe(input_row, use_container_width=True)
+        st.dataframe(input_row, width="stretch")
 
 
 if __name__ == "__main__":
