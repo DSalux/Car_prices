@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Compile Python files
+        run: python -m py_compile app.py domain_shift_australia.py
+
+      - name: Smoke-test app helpers
+        run: |
+          python - <<'PY'
+          import app
+
+          row = app.build_input_row(
+              brand="Maruti",
+              manufacture=2018,
+              kms_driven_num=50000,
+              fuel_type="Petrol",
+              transmission="Manual",
+              owner_number=1,
+              engine_cc=1197,
+              seats_num=5,
+          )
+
+          rates = {"INR": 1.0, "USD": 0.012, "EUR": 0.011, "RUB": 1.05}
+          assert row.shape == (1, 9)
+          assert app.parse_price_rupee("10 Lakh") == 1_000_000
+          assert app.parse_price_rupee("1 Crore") == 10_000_000
+          assert app.convert_price(100_000, "USD", rates) == 1200
+          PY
+
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t car-price-app .
