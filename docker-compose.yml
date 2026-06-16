@@ -1,0 +1,10 @@
+services:
+  car-price-app:
+    build: .
+    container_name: car-price-app
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+    restart: unless-stopped
