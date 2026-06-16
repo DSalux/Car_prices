@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+import json
 import urllib.request
 import zipfile
 
@@ -24,6 +25,19 @@ DATA_DIR = Path("data")
 DATA_PATH = DATA_DIR / "car_price.csv"
 ARTIFACTS_DIR = Path("artifacts")
 MODEL_PATH = ARTIFACTS_DIR / "car_price_model.joblib"
+EXCHANGE_RATE_URL = "https://open.er-api.com/v6/latest/INR"
+FALLBACK_RATES = {
+    "INR": 1.0,
+    "USD": 0.012,
+    "EUR": 0.011,
+    "RUB": 1.05,
+}
+CURRENCY_LABELS = {
+    "INR": "Indian rupee",
+    "USD": "US dollar",
+    "EUR": "Euro",
+    "RUB": "Russian ruble",
+}
 
 FEATURE_COLS = [
     "brand",
@@ -182,6 +196,31 @@ def format_price_rupee(value: float) -> str:
     return f"{value:,.0f} rupees ({lakh:,.2f} Lakh)"
 
 
+def fetch_exchange_rates() -> tuple[dict[str, float], bool]:
+    try:
+        with urllib.request.urlopen(EXCHANGE_RATE_URL, timeout=5) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        rates = payload.get("rates", {})
+        if payload.get("result") == "success" and rates:
+            return {
+                currency: float(rates.get(currency, FALLBACK_RATES[currency]))
+                for currency in FALLBACK_RATES
+            }, True
+    except Exception:
+        pass
+    return FALLBACK_RATES.copy(), False
+
+
+def convert_price(value_inr: float, currency: str, rates: dict[str, float]) -> float:
+    return value_inr * rates.get(currency, 1.0)
+
+
+def format_converted_price(value: float, currency: str) -> str:
+    if currency == "INR":
+        return format_price_rupee(value)
+    return f"{value:,.0f} {currency}"
+
+
 def build_input_row(
     brand,
     manufacture,
@@ -223,8 +262,13 @@ def main():
     def cached_model(_data):
         return load_or_train_model(_data)
 
+    @st.cache_data(ttl=60 * 60)
+    def cached_exchange_rates():
+        return fetch_exchange_rates()
+
     data = cached_data()
     model = cached_model(data)
+    rates, rates_are_live = cached_exchange_rates()
 
     brands = sorted(data["brand"].dropna().unique())
     fuels = sorted(data["fuel_type"].dropna().unique())
@@ -260,6 +304,12 @@ def main():
     with col3:
         seats_num = st.number_input("Мест", 2, 10, default_seats)
 
+    currency = st.selectbox(
+        "Валюта результата",
+        list(FALLBACK_RATES.keys()),
+        format_func=lambda code: f"{code} - {CURRENCY_LABELS[code]}",
+    )
+
     input_row = build_input_row(
         brand=brand,
         manufacture=manufacture,
@@ -272,7 +322,17 @@ def main():
     )
 
     prediction = float(model.predict(input_row)[0])
-    st.metric("Ориентировочная цена", format_price_rupee(prediction))
+    converted_prediction = convert_price(prediction, currency, rates)
+    st.metric(
+        "Ориентировочная цена",
+        format_converted_price(converted_prediction, currency),
+    )
+    if currency != "INR":
+        st.caption(f"Базовый прогноз модели: {format_price_rupee(prediction)}")
+    if rates_are_live:
+        st.caption("Курс валют загружен онлайн, база конвертации: INR.")
+    else:
+        st.warning("Онлайн-курс недоступен, используется запасной примерный курс.")
 
     with st.expander("Параметры для модели"):
         st.dataframe(input_row, width="stretch")
