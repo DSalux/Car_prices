@@ -1,7 +1,7 @@
 PYTHON ?= python
 APP_PORT ?= 8501
 
-.PHONY: install app check australia docker-build docker-run docker-compose-up docker-compose-down
+.PHONY: install app check test australia docker-build docker-run docker-compose-up docker-compose-down
 
 install:
 	$(PYTHON) -m pip install -r requirements.txt
@@ -11,6 +11,10 @@ app:
 
 check:
 	$(PYTHON) -m py_compile app.py domain_shift_australia.py
+	$(PYTHON) -m unittest discover -s tests -p "test_*.py"
+
+test:
+	$(PYTHON) -m unittest discover -s tests -p "test_*.py"
 
 australia:
 	$(PYTHON) domain_shift_australia.py
