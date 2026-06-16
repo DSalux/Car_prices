@@ -135,3 +135,43 @@ streamlit run app.py
 ```
 
 Если страница открылась, поля отображаются, можно выбрать валюту и есть блок `Ориентировочная цена`, приложение работает.
+
+## 11. Проверка на новом рынке: Australia domain shift
+
+Для проверки переносимости модели добавлен отдельный скрипт:
+
+```bash
+python domain_shift_australia.py
+```
+
+Он использует датасет Kaggle `Australian Vehicle Prices`:
+
+https://www.kaggle.com/datasets/nelgiriyewithana/australian-vehicle-prices
+
+Скрипт делает три проверки:
+
+1. baseline на австралийском датасете;
+2. текущая India-модель как transfer-test на новом рынке;
+3. новая RandomForest-модель на австралийском датасете с расширенными признаками.
+
+В новой модели используются дополнительные признаки:
+
+```text
+model
+used_or_new
+drive_type
+body_type
+state
+doors_num
+cylinders_num
+```
+
+Результаты сохраняются в:
+
+```text
+artifacts/domain_shift_australia_report.json
+artifacts/domain_shift_australia_metrics.csv
+artifacts/car_price_model_australia.joblib
+```
+
+Смысл эксперимента: показать, что модель, обученная на одном рынке, не всегда хорошо переносится на другой рынок без переобучения. Это называется `domain shift`.
