@@ -118,11 +118,13 @@ This shows that a model trained on one country does not automatically transfer w
 app.py                         Streamlit app
 Car_prices_completed.ipynb     completed analysis notebook
 domain_shift_australia.py      domain-shift experiment
+tests/test_app_helpers.py      unit tests for app helper logic
 requirements.txt               Python dependencies
 Dockerfile                     Docker image definition
 docker-compose.yml             Docker Compose setup
 HOW_TO_RUN.md                  detailed run instructions
 MODEL_CARD.md                  model limitations and intended use
+.github/workflows/ci.yml       GitHub Actions checks
 ```
 
 Generated files are intentionally not committed:
@@ -140,6 +142,7 @@ They are recreated by running the notebook, app, or experiment scripts.
 
 ```bash
 python -m py_compile app.py domain_shift_australia.py
+python -m unittest discover -s tests -p "test_*.py"
 python domain_shift_australia.py
 streamlit run app.py
 ```
