@@ -1,5 +1,7 @@
 # Car Prices
 
+[Русская версия README](README_RU.md)
+
 ML project for predicting used car prices from vehicle attributes. The project started as a notebook experiment and was extended into a small reproducible application with model analysis, Streamlit UI, currency conversion, Docker support, and a domain-shift experiment on a second market.
 
 ## What The Project Does
